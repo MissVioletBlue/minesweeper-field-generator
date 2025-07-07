@@ -1,0 +1,44 @@
+cabal-version: 2.2
+name: minesweeper
+version: 0.1.0.0
+synopsis: A Minesweeper game implementation with TDD
+description: Core game logic for Minesweeper implemented using Test-Driven Development
+license: BSD-3-Clause
+author: Your Name
+maintainer: your.email@example.com
+build-type: Simple
+
+library
+  exposed-modules:
+      CoreTypes
+    , GameLogic
+  hs-source-dirs: src
+  build-depends:
+      base >=4.7 && <5
+    , containers
+  default-language: Haskell2010
+
+test-suite minesweeper-test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test, .
+  main-is: Main.hs
+  other-modules:
+      TestUtils
+    , GameLogicTests
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , minesweeper
+  default-language: Haskell2010
+
+executable minesweeper-exe
+  main-is: Main.hs
+  hs-source-dirs: ., test
+  other-modules:
+      TestUtils
+    , GameLogicTests
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , minesweeper
+  default-language: Haskell2010

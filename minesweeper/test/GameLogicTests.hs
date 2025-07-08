@@ -8,7 +8,7 @@ module GameLogicTests
   ) where
 
 import CoreTypes
-import GameLogic (revealCell, toggleFlag) -- Import the new function
+import GameLogic (revealCell, toggleFlag) -- Import the game logic functions
 import TestUtils
 import qualified Data.Map.Strict as Map
 
@@ -25,93 +25,80 @@ runTests = do
 -- | List of all tests to run.
 tests :: [(String, Bool)]
 tests =
-  -- Existing tests for revealCell
+  -- Existing tests
   [ ("testRevealMine", testRevealMine)
   , ("testRevealHint", testRevealHint)
   , ("testRevealAlreadyRevealed", testRevealAlreadyRevealed)
   , ("testFloodFill", testFloodFill)
-  -- New tests for toggleFlag
   , ("testPlaceFlagOnHidden", testPlaceFlagOnHidden)
   , ("testRemoveFlagFromFlagged", testRemoveFlagFromFlagged)
   , ("testFlagRevealedCell", testFlagRevealedCell)
+  -- New tests for win condition
+  , ("testGameWon", testGameWon)
+  , ("testGameStillPlaying", testGameStillPlaying)
   ]
 
--- Test 1: Revealing a mine should result in a 'Lost' game state.
+-- ... (previous tests remain unchanged) ...
+
 testRevealMine :: Bool
-testRevealMine =
-  let
-    initialState = createTestState 3 3 [(1,1)] -- Mine at the center
-    finalState = revealCell initialState (1,1)
-  in
-    gameStatus finalState == Lost
-
--- Test 2: Revealing a hint cell should reveal only that cell.
+testRevealMine = let s = createTestState 3 3 [(1,1)] in gameStatus (revealCell s (1,1)) == Lost
 testRevealHint :: Bool
-testRevealHint =
-  let
-    initialState = createTestState 3 3 [(0,0)] -- Mine at corner creates hints
-    finalState = revealCell initialState (1,1)
-    isRevealed = Map.lookup (1,1) (gameBoard finalState) == Just (Revealed (Hint 1))
-    neighborHidden = Map.lookup (2,2) (gameBoard finalState) == Just Hidden
-  in
-    isRevealed && neighborHidden && gameStatus finalState == Playing
-
--- Test 3: Revealing an already revealed cell should not change the state.
+testRevealHint = let s = createTestState 3 3 [(0,0)] in let s' = revealCell s (1,1) in Map.lookup (1,1) (gameBoard s') == Just (Revealed (Hint 1)) && Map.lookup (2,2) (gameBoard s') == Just Hidden && gameStatus s' == Playing
 testRevealAlreadyRevealed :: Bool
-testRevealAlreadyRevealed =
-  let
-    initialState = createTestState 3 3 [(0,0)]
-    stateAfterFirstReveal = revealCell initialState (1,1)
-    stateAfterSecondReveal = revealCell stateAfterFirstReveal (1,1)
-  in
-    gameBoard stateAfterFirstReveal == gameBoard stateAfterSecondReveal
+testRevealAlreadyRevealed = let s = createTestState 3 3 [(0,0)] in let s1 = revealCell s (1,1) in let s2 = revealCell s1 (1,1) in gameBoard s1 == gameBoard s2
 
 -- Test 4: Revealing an empty cell should trigger a "flood fill".
 testFloodFill :: Bool
 testFloodFill =
   let
+    -- Board: 5x5 with one mine at the corner (4,4)
+    -- This creates a large empty area to test the flood fill.
     initialState = createTestState 5 5 [(4,4)]
+    -- ACTION: Reveal the empty cell at (0,0)
     finalState = revealCell initialState (0,0)
     finalBoard = gameBoard finalState
+
+    -- ASSERTIONS:
+    -- 1. The revealed empty cell (0,0) should be revealed.
     isOriginRevealed = Map.lookup (0,0) finalBoard == Just (Revealed Empty)
+    -- 2. A distant empty cell (2,2) should also be revealed by the flood fill.
     isDistantEmptyRevealed = Map.lookup (2,2) finalBoard == Just (Revealed Empty)
+    -- 3. The hint cell (3,3), which borders the empty area, should be revealed.
     isBorderHintRevealed = Map.lookup (3,3) finalBoard == Just (Revealed (Hint 1))
-    isHintRevealed = Map.lookup (4,3) finalBoard == Just (Revealed (Hint 1))
+    -- 4. [FIXED] Cell (4,3), also on the border, should also be revealed as a hint.
+    isOtherBorderHintRevealed = Map.lookup (4,3) finalBoard == Just (Revealed (Hint 1))
   in
-    isOriginRevealed && isDistantEmptyRevealed && isBorderHintRevealed && isHintRevealed
+    isOriginRevealed && isDistantEmptyRevealed && isBorderHintRevealed && isOtherBorderHintRevealed
 
--- Test 5: Placing a flag on a hidden cell should mark it as Flagged.
 testPlaceFlagOnHidden :: Bool
-testPlaceFlagOnHidden =
-  let
-    initialState = createTestState 3 3 []
-    -- ACTION: Flag the cell at (1,1)
-    finalState = toggleFlag initialState (1,1)
-    cellView = Map.lookup (1,1) (gameBoard finalState)
-  in
-    cellView == Just Flagged
-
--- Test 6: Removing a flag from a flagged cell should mark it as Hidden.
+testPlaceFlagOnHidden = let s = createTestState 3 3 [] in Map.lookup (1,1) (gameBoard (toggleFlag s (1,1))) == Just Flagged
 testRemoveFlagFromFlagged :: Bool
-testRemoveFlagFromFlagged =
-  let
-    initialState = createTestState 3 3 []
-    -- ACTION: Flag the cell, then flag it again to remove the flag.
-    stateAfterPlacing = toggleFlag initialState (1,1)
-    stateAfterRemoving = toggleFlag stateAfterPlacing (1,1)
-    cellView = Map.lookup (1,1) (gameBoard stateAfterRemoving)
-  in
-    cellView == Just Hidden
-
--- Test 7: Attempting to flag a revealed cell should have no effect.
+testRemoveFlagFromFlagged = let s = createTestState 3 3 [] in let s' = toggleFlag s (1,1) in Map.lookup (1,1) (gameBoard (toggleFlag s' (1,1))) == Just Hidden
 testFlagRevealedCell :: Bool
-testFlagRevealedCell =
+testFlagRevealedCell = let s = createTestState 3 3 [(0,0)] in let s' = revealCell s (1,1) in gameBoard s' == gameBoard (toggleFlag s' (1,1))
+
+-- Test 8: Game status should change to Won when the last non-mine cell is revealed.
+testGameWon :: Bool
+testGameWon =
   let
-    initialState = createTestState 3 3 [(0,0)] -- Mine at (0,0)
-    -- Reveal the cell at (1,1), which is a Hint.
-    revealedState = revealCell initialState (1,1)
-    -- ACTION: Attempt to flag the already revealed cell.
-    finalState = toggleFlag revealedState (1,1)
+    -- A 2x2 board with one mine. Three cells must be revealed to win.
+    -- M .
+    -- . .
+    initialState = createTestState 2 2 [(0,0)]
+    -- Reveal all non-mine cells
+    state1 = revealCell initialState (0,1)
+    state2 = revealCell state1 (1,0)
+    finalState = revealCell state2 (1,1)
   in
-    -- The board state should not have changed.
-    gameBoard revealedState == gameBoard finalState
+    gameStatus finalState == Won
+
+-- Test 9: Game status should remain Playing if non-mine cells are still hidden.
+testGameStillPlaying :: Bool
+testGameStillPlaying =
+  let
+    -- A 3x3 board with one mine.
+    initialState = createTestState 3 3 [(0,0)]
+    -- Reveal one cell, but others remain hidden.
+    finalState = revealCell initialState (1,1)
+  in
+    gameStatus finalState == Playing

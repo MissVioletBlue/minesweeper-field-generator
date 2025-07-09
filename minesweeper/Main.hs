@@ -4,7 +4,15 @@
 module Main where
 
 import qualified GameLogicTests
+import TestUtils (createRandomTestState)
+import TestUtils (printTrueBoard)
 
--- | Main entry point to run the tests
+-- | Main entry point to run the tests and demo board
 main :: IO ()
-main = GameLogicTests.runTests
+main = do
+  -- Create and show a 9x9 board with 25 mines and (4,4) as safe field
+  putStrLn "=== Sample True Board ==="
+  gs <- createRandomTestState 9 9 25 (4,4)
+  printTrueBoard gs
+  putStrLn "\n=== Running Tests ==="
+  GameLogicTests.runTests

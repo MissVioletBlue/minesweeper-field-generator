@@ -40,6 +40,16 @@
   (major1) == 0 && (major2) <  1 || \
   (major1) == 0 && (major2) == 1 && (minor) <= 0)
 #endif /* MIN_VERSION_minesweeper */
+/* package random-shuffle-0.0.4 */
+#ifndef VERSION_random_shuffle
+#define VERSION_random_shuffle "0.0.4"
+#endif /* VERSION_random_shuffle */
+#ifndef MIN_VERSION_random_shuffle
+#define MIN_VERSION_random_shuffle(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  0 || \
+  (major1) == 0 && (major2) == 0 && (minor) <= 4)
+#endif /* MIN_VERSION_random_shuffle */
 
 /* tool gcc-14.0.6 */
 #ifndef TOOL_VERSION_gcc
@@ -121,6 +131,16 @@
   (major1) == 9 && (major2) <  6 || \
   (major1) == 9 && (major2) == 6 && (minor) <= 7)
 #endif /* MIN_TOOL_VERSION_runghc */
+/* tool strip-2.42 */
+#ifndef TOOL_VERSION_strip
+#define TOOL_VERSION_strip "2.42"
+#endif /* TOOL_VERSION_strip */
+#ifndef MIN_TOOL_VERSION_strip
+#define MIN_TOOL_VERSION_strip(major1,major2,minor) (\
+  (major1) <  2 || \
+  (major1) == 2 && (major2) <  42 || \
+  (major1) == 2 && (major2) == 42 && (minor) <= 0)
+#endif /* MIN_TOOL_VERSION_strip */
 
 #ifndef CURRENT_COMPONENT_ID
 #define CURRENT_COMPONENT_ID "minesweeper-0.1.0.0-inplace-minesweeper-exe"
